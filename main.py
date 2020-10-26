@@ -2,14 +2,12 @@
 
 from inky import InkyPHAT
 from PIL import ImageFont, ImageDraw, Image
-from fonts.ttf import RobotoMedium as UserFont
 import textwrap
 import requests
 import time
 from datetime import datetime
 import yaml
 from noaa_sdk import noaa
-from font_hanken_grotesk import HankenGroteskBold
 import requests
 from requests.exceptions import HTTPError
 import json
@@ -19,7 +17,6 @@ import json
 font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 10)
 redBigFont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
 bigFont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", 15)
-#font = ImageFont.truetype(HankenGroteskLight, 12)
 
 
 ''' Font Options
@@ -180,18 +177,18 @@ def getHackerNews():
         draw.text((0,0), score, inky_display.RED, redBigFont)
         inky_display.set_image(img.rotate(180))
         inky_display.show()
-        time.sleep(30)
+        time.sleep(60)
 
 
 while True:
     locations = getLocation()
     getHackerNews()
     getCurrentConditions()
-    time.sleep(30)
+    time.sleep(120)
     getCovid()
-    time.sleep(30)
+    time.sleep(120)
     getWeather()
-    time.sleep(30)
+    time.sleep(120)
 
   
 

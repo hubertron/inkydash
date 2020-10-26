@@ -1,0 +1,8 @@
+
+inky
+pillow
+pyyaml
+noass_sdk
+requests
+json
+textwrap
