@@ -16,4 +16,4 @@ A dashboard to display the following in a rotating manner:
 
 1. Clone this repo: `git clone https://github.com/hubertron/inkydash`
 2. Install requirements `pip3 install -r requirements.txt`
-3. Configure locations in `locations.yaml`
+3. Configure locations in `locations.yaml` 
