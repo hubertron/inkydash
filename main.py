@@ -101,7 +101,7 @@ def getCovid():
     jsonResponse = fetchFeed(f'https://api.covidtracking.com/v1/states/{locations[2]}/daily.json')
     todayCovid = jsonResponse[0]["hospitalizedCurrently"]
     yesterdayCovid = jsonResponse[1]["hospitalizedCurrently"]
-    currentlyHospitalized = "Currently Hospitalized: " +  str(todayCovid)
+    currentlyHospitalized = "Hospitalized: " +  str(todayCovid)
     hospitalizationChange = str(todayCovid - yesterdayCovid) + " new hospitalizations"
     newCases = str(jsonResponse[0]["positiveIncrease"]) + " new cases"
     covidUpdate = datetime.now().strftime('%a %b %d %-I:%M %p')
