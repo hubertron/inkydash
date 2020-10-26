@@ -44,6 +44,7 @@ Lazy person code copying
 sudo nano /usr/lib/systemd/system/eink.service
 sudo systemctl start eink.service
 sudo systemctl daemon-reload
+journalctl -f
 '''
 
 # Display Setup
@@ -72,8 +73,15 @@ def fetchFeed(url):
     try:
         response = requests.get(url)
         response.raise_for_status()
-        jsonResponse = response.json()
-        return jsonResponse
+        if 'application/json' in response.headers['content-type']:
+          jsonResponse = response.json()
+          return jsonResponse
+        elif 'text/plain' in response.headers['content-type']:
+          textResponse = response.text
+          return textResponse
+        else: 
+          logging.warning("Unknown format in jquery assume json")
+          jsonResponse = response.json()
 
     except HTTPError as http_err:
         print(f'HTTP error occurred: {http_err}')
@@ -222,9 +230,11 @@ def getPihole():
     draw.text((0, 40), printPercentBlockedToday, inky_display.RED, bigFont)
     draw.text((0, 60), printClientsSeen, inky_display.WHITE, bigFont)
 
-    # Get Public IP
-    ipResponse = fetchFeed('https://api.ipify.org?format=json')
-    printIpResonse = "Public IP: " + ipResponse["ip"]
+    # Get Public IP, both work.
+    #ipResponse = fetchFeed('https://api.ipify.org?format=json')
+    ipResponse = fetchFeed('https://icanhazip.com')
+    
+    printIpResonse = "Public IP: " + ipResponse
     draw.text((0, 80), printIpResonse, inky_display.WHITE, bigFont)
     # Draw
     inky_display.set_image(img.rotate(180))
