@@ -1,0 +1,13 @@
+---
+- name: Weather Location
+  zip: "80211"
+  country: 'US'
+  state: 'CO'
+  stocks: 
+    - 'KR'
+    - 'F' 
+    - 'TWTR'
+    - 'RKT'
+    - 'FSLY' 
+    - 'CCO'
+

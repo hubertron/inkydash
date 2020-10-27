@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import sys
+import stockquotes
 
 logging.basicConfig(
     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
@@ -58,15 +59,16 @@ draw = ImageDraw.Draw(img)
 
 res1day = ""
 
-
-def getLocation():
+# Utility Functions
+def getConfig():
     # absolute to run as cron. PiTA
-    with open('/home/pi/inkydash/location.yaml') as f:
-        location = yaml.load(f, Loader=yaml.FullLoader)
-        zipcode = location[0]["zip"]
-        country = location[0]["country"]
-        state = location[0]["state"]
-        return zipcode, country, state
+    with open('/home/pi/inkydash/config.yaml') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+        zipcode = config[0]["zip"]
+        country = config[0]["country"]
+        state = config[0]["state"]
+        stocks = config[0]["stocks"]
+        return zipcode, country, state, stocks
 
 
 def fetchFeed(url):
@@ -91,10 +93,29 @@ def fetchFeed(url):
         print(f'Other error occurred: {err}')
         logging.warning(f'Other error occurred: {err}')
 
+
+def drawClean(color):
+  if color == 'WHITE':
+    draw.rectangle((0, 0, inky_display.WIDTH,
+                        inky_display.HEIGHT), 
+                        (inky_display.WHITE))
+  elif color == 'BLACK':
+    draw.rectangle((0, 0, inky_display.WIDTH,
+                        inky_display.HEIGHT), 
+                        (inky_display.BLACK))
+  elif color == 'RED':
+    draw.rectangle((0, 0, inky_display.WIDTH,
+                        inky_display.HEIGHT), 
+                        (inky_display.RED))
+  else:
+    draw.rectangle((0, 0, inky_display.WIDTH,
+                        inky_display.HEIGHT), 
+                        (inky_display.WHITE))
+
 def getWeather():
     try:
         n = noaa.NOAA()
-        res = n.get_forecasts(locations[0], locations[1], False)
+        res = n.get_forecasts(config[0], config[1], False)
         res1day = res[0]["detailedForecast"]
         # display on InkyPHAT
         # Take string of text and wrap it at 38 chars
@@ -108,9 +129,7 @@ def getWeather():
         x = (inky_display.WIDTH / 2) - (w / 2)
         y = (inky_display.HEIGHT / 2) - (h / 2)
 
-        # Draw a backgrund rect the size of the display
-        draw.rectangle((0, 0, inky_display.WIDTH,
-                        inky_display.HEIGHT), (inky_display.WHITE))
+        drawClean('WHITE')
 
         # Draw multiline text on scren
         draw.multiline_text((x, 0), txt, inky_display.BLACK, font)
@@ -127,57 +146,53 @@ def getWeather():
 
 
 def getCovid():
-    # Draw a backgrund rect the size of the display
-    draw.rectangle((0, 0, inky_display.WIDTH,
-                    inky_display.HEIGHT), (inky_display.WHITE))
-    jsonResponse = fetchFeed(f'https://api.covidtracking.com/v1/states/{locations[2]}/daily.json')
-    todayCovid = jsonResponse[0]["hospitalizedCurrently"]
-    yesterdayCovid = jsonResponse[1]["hospitalizedCurrently"]
-    currentlyHospitalized = "Hospitalized: " + "{:,}".format(todayCovid)
-    hospitalizationChange = str(
-        todayCovid - yesterdayCovid) + " new hospitalizations"
-    newCases = "{:,}".format(jsonResponse[0]["positiveIncrease"]) + " new positivity"
-    covidUpdate = datetime.now().strftime('%a %b %d %-I:%M %p')
-    draw.text((0, 0), "CO Covid Update", inky_display.BLACK, bigFont)
-    draw.text((0, 20), currentlyHospitalized, inky_display.BLACK, bigFont)
-    draw.text((0, 40), hospitalizationChange, inky_display.RED, bigFont)
-    draw.text((0, 60), newCases, inky_display.RED, bigFont)
-    draw.text((0, 88), covidUpdate, inky_display.BLACK, font)
+  drawClean('WHITE')
+  jsonResponse = fetchFeed(f'https://api.covidtracking.com/v1/states/{config[2]}/daily.json')
+  todayCovid = jsonResponse[0]["hospitalizedCurrently"]
+  yesterdayCovid = jsonResponse[1]["hospitalizedCurrently"]
+  currentlyHospitalized = "Hospitalized: " + "{:,}".format(todayCovid)
+  hospitalizationChange = str(
+      todayCovid - yesterdayCovid) + " new hospitalizations"
+  newCases = "{:,}".format(jsonResponse[0]["positiveIncrease"]) + " new positivity"
+  covidUpdate = datetime.now().strftime('%a %b %d %-I:%M %p')
+  draw.text((0, 0), "CO Covid Update", inky_display.BLACK, bigFont)
+  draw.text((0, 20), currentlyHospitalized, inky_display.BLACK, bigFont)
+  draw.text((0, 40), hospitalizationChange, inky_display.RED, bigFont)
+  draw.text((0, 60), newCases, inky_display.RED, bigFont)
+  draw.text((0, 88), covidUpdate, inky_display.BLACK, font)
 
-    inky_display.set_image(img.rotate(180))
-    inky_display.show()
+  inky_display.set_image(img.rotate(180))
+  inky_display.show()
 
 
 def getCurrentConditions():
-    # Draw a backgrund rect the size of the display
-    draw.rectangle((0, 0, inky_display.WIDTH,
-                    inky_display.HEIGHT), (inky_display.WHITE))
+  drawClean('WHITE')
 
-    # AQI
-    aqiResponse = fetchFeed(
-        'https://io.adafruit.com/api/v2/drkpxl/feeds/pollution.aqi')
-    printAqi = "Current AQI: " + aqiResponse["last_value"]
-    draw.text((0, 0), printAqi, inky_display.BLACK, bigFont)
+  # AQI
+  aqiResponse = fetchFeed(
+      'https://io.adafruit.com/api/v2/drkpxl/feeds/pollution.aqi')
+  printAqi = "Current AQI: " + aqiResponse["last_value"]
+  draw.text((0, 0), printAqi, inky_display.BLACK, bigFont)
 
-    # Current Temp
-    tempResponse = fetchFeed(
-        'https://io.adafruit.com/api/v2/drkpxl/feeds/temp')
-    printTemp = "Current Temp: " + tempResponse["last_value"] + " °F"
-    draw.text((0, 20), printTemp, inky_display.BLACK, bigFont)
+  # Current Temp
+  tempResponse = fetchFeed(
+      'https://io.adafruit.com/api/v2/drkpxl/feeds/temp')
+  printTemp = "Current Temp: " + tempResponse["last_value"] + " °F"
+  draw.text((0, 20), printTemp, inky_display.BLACK, bigFont)
 
-    # Current Humidity
-    humResponse = fetchFeed(
-        'https://io.adafruit.com/api/v2/drkpxl/feeds/humidity')
-    printHum = "Current Humidity: " + humResponse["last_value"] + " %"
-    draw.text((0, 40), printHum, inky_display.BLACK, bigFont)
+  # Current Humidity
+  humResponse = fetchFeed(
+      'https://io.adafruit.com/api/v2/drkpxl/feeds/humidity')
+  printHum = "Current Humidity: " + humResponse["last_value"] + " %"
+  draw.text((0, 40), printHum, inky_display.BLACK, bigFont)
 
-    # Feed Last Update
-    lastUpdate = aqiResponse["updated_at"]
-    draw.text((0, 88), lastUpdate, inky_display.BLACK, font)
+  # Feed Last Update
+  lastUpdate = aqiResponse["updated_at"]
+  draw.text((0, 88), lastUpdate, inky_display.BLACK, font)
 
-    # Draw
-    inky_display.set_image(img.rotate(180))
-    inky_display.show()
+  # Draw
+  inky_display.set_image(img.rotate(180))
+  inky_display.show()
 
 
 def getHackerNews():
@@ -201,9 +216,7 @@ def getHackerNews():
     x = (inky_display.WIDTH / 2) - (w / 2)
     y = (inky_display.HEIGHT / 2) - (h / 2)
 
-    # Draw a backgrund rect the size of the display
-    draw.rectangle((0, 0, inky_display.WIDTH,
-                    inky_display.HEIGHT), (inky_display.BLACK))
+    drawClean('BLACK')
 
     # Draw multiline text on scren
     draw.multiline_text((x, y), txt, inky_display.WHITE, bigFont)
@@ -214,47 +227,72 @@ def getHackerNews():
 
 
 def getPihole():
+  drawClean('BLACK')
+
+  piholeResponse = fetchFeed('http://pi.hole/admin/api.php')
+  printPercentBlockedToday = "PiHoled: " + str(round(piholeResponse["ads_percentage_today"])) + " %"
+  printClientsSeen = "Total Clients: " + str(piholeResponse["clients_ever_seen"])
+  printQueriesToday = "Queries Today: {:,}".format(piholeResponse['dns_queries_today'])
+
+  #('{:,}'.format(value)) 
+  printStatus = "PiHole Status: " + piholeResponse['status']
+  draw.text((0, 0), printStatus, inky_display.WHITE, bigFont)
+  draw.text((0, 20), printQueriesToday, inky_display.WHITE, bigFont)
+  draw.text((0, 40), printPercentBlockedToday, inky_display.RED, bigFont)
+  draw.text((0, 60), printClientsSeen, inky_display.WHITE, bigFont)
+
+  # Get Public IP, both work.
+  #ipResponse = fetchFeed('https://api.ipify.org?format=json')
+  ipResponse = fetchFeed('https://icanhazip.com')
   
-  # Draw a backgrund rect the size of the display
-    draw.rectangle((0, 0, inky_display.WIDTH,
-                          inky_display.HEIGHT), 
-                          (inky_display.BLACK))
+  printIpResonse = "Public IP: " + ipResponse
+  draw.text((0, 80), printIpResonse, inky_display.WHITE, bigFont)
+  # Draw
+  inky_display.set_image(img.rotate(180))
+  inky_display.show()
 
-    piholeResponse = fetchFeed('http://pi.hole/admin/api.php')
-    printPercentBlockedToday = "PiHoled: " + str(round(piholeResponse["ads_percentage_today"])) + " %"
-    printClientsSeen = "Total Clients: " + str(piholeResponse["clients_ever_seen"])
-    printQueriesToday = "Queries Today: {:,}".format(piholeResponse['dns_queries_today'])
+def getStocks():
 
-    #('{:,}'.format(value)) 
-    printStatus = "PiHole Status: " + piholeResponse['status']
-    draw.text((0, 0), printStatus, inky_display.WHITE, bigFont)
-    draw.text((0, 20), printQueriesToday, inky_display.WHITE, bigFont)
-    draw.text((0, 40), printPercentBlockedToday, inky_display.RED, bigFont)
-    draw.text((0, 60), printClientsSeen, inky_display.WHITE, bigFont)
+    stockSymbols = config[3]
 
-    # Get Public IP, both work.
-    #ipResponse = fetchFeed('https://api.ipify.org?format=json')
-    ipResponse = fetchFeed('https://icanhazip.com')
-    
-    printIpResonse = "Public IP: " + ipResponse
-    draw.text((0, 80), printIpResonse, inky_display.WHITE, bigFont)
-    # Draw
-    inky_display.set_image(img.rotate(180))
-    inky_display.show()
 
+    for x in stockSymbols:
+      drawClean('WHITE')
+      symbolData = stockquotes.Stock(x)
+      printName = symbolData.name + " (" + symbolData.symbol + ")"
+      printCurrentPrice = str("${:,}".format(symbolData.current_price))
+      printIncreasePercent = str(symbolData.increase_percent) + "%"
+  
+      draw.text((0, 0), printName, inky_display.BLACK, bigFont)
+      draw.text((0, 20), printCurrentPrice, inky_display.BLACK, bigFont)
+      if symbolData.increase_percent <= 0:
+        draw.text((60, 20), printIncreasePercent, inky_display.RED, bigFont)
+      else:
+        draw.text((60, 20), printIncreasePercent, inky_display.BLACK, bigFont)
+      
+      # Draw
+      inky_display.set_image(img.rotate(180))
+      inky_display.show()
+
+      time.sleep(30)
+
+# Get initial YAML
+config = getConfig()
+
+# Main Loop
 while True:
   try:
-    # Setup the Most Basic Logging
-    locations = getLocation()
-    #getPihole()
-    #time.sleep(120)
-    #getHackerNews()
-    #getCurrentConditions()
-    #time.sleep(120)
+    config = getConfig()
+    getStocks()
+    getPihole()
+    time.sleep(180)
+    getHackerNews()
+    getCurrentConditions()
+    time.sleep(180)
     getCovid()
-    time.sleep(120)
+    time.sleep(180)
     getWeather()
-    time.sleep(120)
+    time.sleep(180)
   except (KeyboardInterrupt, SystemExit):
     print('\nkeyboardinterrupt found!')
     sys.exit(0)
