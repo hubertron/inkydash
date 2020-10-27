@@ -133,10 +133,10 @@ def getCovid():
     jsonResponse = fetchFeed(f'https://api.covidtracking.com/v1/states/{locations[2]}/daily.json')
     todayCovid = jsonResponse[0]["hospitalizedCurrently"]
     yesterdayCovid = jsonResponse[1]["hospitalizedCurrently"]
-    currentlyHospitalized = "Hospitalized: " + str(todayCovid)
+    currentlyHospitalized = "Hospitalized: " + "{:,}".format(todayCovid)
     hospitalizationChange = str(
         todayCovid - yesterdayCovid) + " new hospitalizations"
-    newCases = str(jsonResponse[0]["positiveIncrease"]) + " new cases"
+    newCases = "{:,}".format(jsonResponse[0]["positiveIncrease"]) + " new positivity"
     covidUpdate = datetime.now().strftime('%a %b %d %-I:%M %p')
     draw.text((0, 0), "CO Covid Update", inky_display.BLACK, bigFont)
     draw.text((0, 20), currentlyHospitalized, inky_display.BLACK, bigFont)
@@ -223,7 +223,9 @@ def getPihole():
     piholeResponse = fetchFeed('http://pi.hole/admin/api.php')
     printPercentBlockedToday = "PiHoled: " + str(round(piholeResponse["ads_percentage_today"])) + " %"
     printClientsSeen = "Total Clients: " + str(piholeResponse["clients_ever_seen"])
-    printQueriesToday = "Queries Today: " + str(piholeResponse["dns_queries_today"])
+    printQueriesToday = "Queries Today: {:,}".format(piholeResponse['dns_queries_today'])
+
+    #('{:,}'.format(value)) 
     printStatus = "PiHole Status: " + piholeResponse['status']
     draw.text((0, 0), printStatus, inky_display.WHITE, bigFont)
     draw.text((0, 20), printQueriesToday, inky_display.WHITE, bigFont)
@@ -239,16 +241,16 @@ def getPihole():
     # Draw
     inky_display.set_image(img.rotate(180))
     inky_display.show()
-    time.sleep(120)
 
 while True:
   try:
     # Setup the Most Basic Logging
     locations = getLocation()
-    getPihole()
-    getHackerNews()
-    getCurrentConditions()
-    time.sleep(120)
+    #getPihole()
+    #time.sleep(120)
+    #getHackerNews()
+    #getCurrentConditions()
+    #time.sleep(120)
     getCovid()
     time.sleep(120)
     getWeather()
