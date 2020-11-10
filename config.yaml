@@ -1,5 +1,5 @@
 ---
-- name: Weather Location
+- name: Config Setup of App Options
   zip: "80211"
   country: 'US'
   state: 'CO'
@@ -10,4 +10,7 @@
     - 'RKT'
     - 'FSLY' 
     - 'CCO'
+    - '^IXIC'
+    - '^DJI'
+    - '^GSPC'
 
